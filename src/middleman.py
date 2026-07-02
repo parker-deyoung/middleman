@@ -3,6 +3,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from starlette.background import BackgroundTask
 import httpx
 
+from .safety import inject_system_prompt
+
 #Switch to your own OLLAMA_BASE if you are not running ollama locally.
 OLLAMA_BASE = "http://localhost:11434/v1"
 
@@ -23,7 +25,8 @@ async def chat_completions(request: Request):
 
     #   RAG / safety filtering will hook in here later.
     #   For now, pass the payload through unchanged.
-
+    
+    payload = inject_system_prompt(payload)
     req = client.build_request("POST", "/chat/completions", json=payload)
     upstream = await client.send(req, stream=True)
 
