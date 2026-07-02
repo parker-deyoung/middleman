@@ -35,6 +35,7 @@ async def chat_completions(request: Request):
     #Safety and prompt injection filtering.  This will inject a system prompt into the request to ensure that the model is always aware of the safety rules.
     payload = inject_system_prompt(payload)
 
+    #Check if server is at capacity or not
     try:
         await asyncio.wait_for(sem.acquire(), timeout=ACQUIRE_TIMEOUT)
     except asyncio.TimeoutError:
@@ -44,13 +45,15 @@ async def chat_completions(request: Request):
                                "type": "rate_limit_exceeded"}},
         )
     
+    # Send upstream request to ollama. If this fails, release the semaphore and raise the exception to be handled by FastAPI.
     try:
         req = client.build_request("POST", "/chat/completions", json=payload)
         upstream = await client.send(req, stream=True)
     except Exception:
         sem.release()
         raise
-
+    
+    # Stream the response back to the client and release the semaphore when done.  This is done in a background task so that the semaphore is released when the request is done.
     async def stream_and_release():
         try:
             async for chunk in upstream.aiter_raw():
@@ -59,6 +62,7 @@ async def chat_completions(request: Request):
             await upstream.aclose()
             sem.release() 
 
+    #return stream pachage
     return StreamingResponse(
         stream_and_release(),
         status_code=upstream.status_code,

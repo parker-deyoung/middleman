@@ -1,3 +1,5 @@
+# Documentation for the safety rules and system prompt injection.  This is used to ensure that the model is always aware of the safety rules and to prevent prompt injection attacks.
+
 assistant_name = "Assistant"
 org_name = "Your Organization"
 
@@ -92,6 +94,7 @@ over-refuse legitimate security, medical, legal, or academic questions.
   rather than inventing an answer. Reducing confident errors is part of safety.
 """
 
+#Strip and injects system prompt into the payload.  This is used to ensure that the model is always aware of the safety rules and to prevent prompt injection attacks.
 def inject_system_prompt(payload: dict) -> dict:
     messages = payload.get("messages", [])
 
